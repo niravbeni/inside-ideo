@@ -70,6 +70,7 @@ export function ResultsSection({
   processingStep = { step: 0, message: "" },
 }: ResultsSectionProps) {
   const [activeTab, setActiveTab] = useState("structured");
+  const [activeStructuredTab, setActiveStructuredTab] = useState("summary");
   const [processedPages, setProcessedPages] = useState<PageData[]>([]);
   const [loadingPages, setLoadingPages] = useState<Record<number, boolean>>({});
   const [editableData, setEditableData] = useState<StructuredData | null>(null);
@@ -320,7 +321,7 @@ export function ResultsSection({
   // Force EditableArrayField to exit edit mode when switching tabs
   useEffect(() => {
     setFocusedField(null);
-  }, [activeTab]);
+  }, [activeTab, activeStructuredTab]);
 
   if (isLoading) {
     const step1Complete = processingStep.step > 1;
@@ -531,9 +532,7 @@ export function ResultsSection({
       >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="structured">Structured Data</TabsTrigger>
-          <TabsTrigger value="images">
-            Meaningful Images ({images.length})
-          </TabsTrigger>
+          <TabsTrigger value="images">Images ({images.length})</TabsTrigger>
           <TabsTrigger value="pages">
             PDF Pages ({processedPages.length})
           </TabsTrigger>
@@ -542,278 +541,283 @@ export function ResultsSection({
         <TabsContent value="structured">
           {editableData && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Extracted Content</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1"
-                  onClick={handleResetToOriginal}
-                  title="Reset to original AI results"
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                  <span>Reset to Original</span>
-                </Button>
-              </div>
+              <Tabs
+                defaultValue="summary"
+                className="w-full"
+                value={activeStructuredTab}
+                onValueChange={setActiveStructuredTab}
+              >
+                <TabsList className="grid w-full grid-cols-3 mb-6">
+                  <TabsTrigger value="summary">PDF Summary</TabsTrigger>
+                  <TabsTrigger value="casestudy">Case Study</TabsTrigger>
+                  <TabsTrigger value="insideideo">Inside IDEO</TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-4">
-                {editableData.title && (
-                  <EditableField
-                    fieldId="title"
-                    label="Title"
-                    value={editableData.title}
-                    isTextArea={true}
-                    rows={2}
-                    onChange={(value) =>
-                      handleStringFieldChange("title", value)
-                    }
-                    onFocus={handleFieldFocus}
-                    onBlur={handleFieldBlur}
-                    onReset={() => handleResetField("title")}
-                  />
-                )}
-
-                {editableData.summary && (
-                  <EditableField
-                    fieldId="summary"
-                    label="Summary"
-                    value={editableData.summary}
-                    isTextArea={true}
-                    rows={4}
-                    onChange={(value) =>
-                      handleStringFieldChange("summary", value)
-                    }
-                    onFocus={handleFieldFocus}
-                    onBlur={handleFieldBlur}
-                    onReset={() => handleResetField("summary")}
-                  />
-                )}
-
-                {editableData.key_points &&
-                  editableData.key_points.length > 0 && (
-                    <EditableArrayField
-                      fieldId="key_points"
-                      label="Key Points"
-                      value={editableData.key_points}
-                      rawValue={rawKeyPoints}
-                      rows={6}
-                      placeholder="Enter key points, one per line"
-                      onChange={handleKeyPointsChange}
+                <TabsContent value="summary" className="space-y-4">
+                  {editableData.title && (
+                    <EditableField
+                      fieldId="title"
+                      label="Title"
+                      value={editableData.title}
+                      isTextArea={true}
+                      rows={2}
+                      onChange={(value) =>
+                        handleStringFieldChange("title", value)
+                      }
                       onFocus={handleFieldFocus}
                       onBlur={handleFieldBlur}
-                      onReset={() => handleResetField("key_points")}
+                      onReset={() => handleResetField("title")}
                     />
                   )}
 
-                {editableData.insights_from_images &&
-                  editableData.insights_from_images.length > 0 && (
-                    <EditableArrayField
-                      fieldId="insights_from_images"
-                      label="Insights from Images"
-                      value={editableData.insights_from_images}
-                      rawValue={rawInsights}
-                      rows={6}
-                      placeholder="Enter insights, one per line"
-                      onChange={handleInsightsChange}
+                  {editableData.summary && (
+                    <EditableField
+                      fieldId="summary"
+                      label="Summary"
+                      value={editableData.summary}
+                      isTextArea={true}
+                      rows={4}
+                      onChange={(value) =>
+                        handleStringFieldChange("summary", value)
+                      }
                       onFocus={handleFieldFocus}
                       onBlur={handleFieldBlur}
-                      onReset={() => handleResetField("insights_from_images")}
+                      onReset={() => handleResetField("summary")}
                     />
                   )}
 
-                {Object.entries(editableData).map(([key, value]) => {
-                  if (
-                    [
-                      "title",
-                      "summary",
-                      "key_points",
-                      "insights_from_images",
-                    ].includes(key)
-                  ) {
-                    return null;
-                  }
-
-                  if (Array.isArray(value) && value.length > 0) {
-                    const fieldId = `field_${key}`;
-                    return (
+                  {editableData.key_points &&
+                    editableData.key_points.length > 0 && (
                       <EditableArrayField
-                        key={key}
-                        fieldId={fieldId}
-                        label={key.replace(/_/g, " ")}
-                        value={value as string[]}
-                        rawValue={otherRawFields[key] || value.join("\n")}
+                        fieldId="key_points"
+                        label="Key Points"
+                        value={editableData.key_points}
+                        rawValue={rawKeyPoints}
                         rows={6}
-                        placeholder="Enter items, one per line"
-                        onChange={(rawValue, processedArray) =>
-                          handleArrayFieldChange(key, rawValue, processedArray)
-                        }
+                        placeholder="Enter key points, one per line"
+                        onChange={handleKeyPointsChange}
                         onFocus={handleFieldFocus}
                         onBlur={handleFieldBlur}
-                        onReset={() => handleResetField(key)}
+                        onReset={() => handleResetField("key_points")}
                       />
-                    );
-                  }
+                    )}
 
-                  if (typeof value === "string" && value.trim() !== "") {
-                    const fieldId = `field_${key}`;
-                    return (
-                      <EditableField
-                        key={key}
-                        fieldId={fieldId}
-                        label={key.replace(/_/g, " ")}
-                        value={value}
-                        onChange={(newValue) =>
-                          handleStringFieldChange(key, newValue)
-                        }
+                  {editableData.insights_from_images &&
+                    editableData.insights_from_images.length > 0 && (
+                      <EditableArrayField
+                        fieldId="insights_from_images"
+                        label="Insights from Images"
+                        value={editableData.insights_from_images}
+                        rawValue={rawInsights}
+                        rows={6}
+                        placeholder="Enter insights, one per line"
+                        onChange={handleInsightsChange}
                         onFocus={handleFieldFocus}
                         onBlur={handleFieldBlur}
-                        onReset={() => handleResetField(key)}
+                        onReset={() => handleResetField("insights_from_images")}
                       />
-                    );
-                  }
+                    )}
 
-                  return null;
-                })}
-              </div>
+                  {Object.entries(editableData).map(([key, value]) => {
+                    if (
+                      [
+                        "title",
+                        "summary",
+                        "key_points",
+                        "insights_from_images",
+                        // Add fields that should be shown in other tabs
+                        "case_study_title",
+                        "case_study_description",
+                        "case_study_challenge",
+                        "case_study_solution",
+                        "case_study_results",
+                        "inside_ideo_title",
+                        "inside_ideo_description",
+                        "inside_ideo_team",
+                        "inside_ideo_approach",
+                        "inside_ideo_outcome",
+                      ].includes(key)
+                    ) {
+                      return null;
+                    }
+
+                    if (Array.isArray(value) && value.length > 0) {
+                      const fieldId = `field_${key}`;
+                      return (
+                        <EditableArrayField
+                          key={key}
+                          fieldId={fieldId}
+                          label={key.replace(/_/g, " ")}
+                          value={value as string[]}
+                          rawValue={otherRawFields[key] || value.join("\n")}
+                          rows={6}
+                          placeholder="Enter items, one per line"
+                          onChange={(rawValue, processedArray) =>
+                            handleArrayFieldChange(
+                              key,
+                              rawValue,
+                              processedArray
+                            )
+                          }
+                          onFocus={handleFieldFocus}
+                          onBlur={handleFieldBlur}
+                          onReset={() => handleResetField(key)}
+                        />
+                      );
+                    }
+
+                    if (typeof value === "string" && value.trim() !== "") {
+                      const fieldId = `field_${key}`;
+                      return (
+                        <EditableField
+                          key={key}
+                          fieldId={fieldId}
+                          label={key.replace(/_/g, " ")}
+                          value={value}
+                          onChange={(newValue) =>
+                            handleStringFieldChange(key, newValue)
+                          }
+                          onFocus={handleFieldFocus}
+                          onBlur={handleFieldBlur}
+                          onReset={() => handleResetField(key)}
+                        />
+                      );
+                    }
+
+                    return null;
+                  })}
+                </TabsContent>
+
+                <TabsContent value="casestudy" className="space-y-4">
+                  <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                    <h3 className="text-lg font-medium text-gray-500 mb-3">
+                      Case Study Format
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Future AI processing will provide case study content here,
+                      including title, description, challenge, solution, and
+                      results.
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="insideideo" className="space-y-4">
+                  <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                    <h3 className="text-lg font-medium text-gray-500 mb-3">
+                      Inside IDEO Format
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Future AI processing will provide Inside IDEO content
+                      here, including title, description, team information,
+                      approach, and outcome.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="images">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Meaningful Images</h2>
-            {images.length === 0 ? (
-              <p className="text-muted-foreground">
-                No meaningful images were found in the document.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {images.map((image, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">
-                        Image {index + 1} - Page {image.page}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="relative aspect-video overflow-hidden bg-muted flex items-center justify-center">
-                        <Image
-                          src={image.image_data}
-                          alt={`Extracted image ${index + 1}`}
-                          className="object-contain"
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between pt-4">
-                      <div className="text-sm text-muted-foreground truncate max-w-[180px]">
-                        {image.width && image.height
-                          ? `${image.width}×${image.height}`
-                          : image.filename}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          downloadImage(image.image_data, image.filename)
-                        }
-                      >
-                        <Download className="h-4 w-4 mr-1" /> Download
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {images.map((image, index) => (
+              <Card key={index} className="overflow-hidden">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex justify-between items-center">
+                    <span>
+                      Page {image.page + 1}{" "}
+                      {image.ocr_text &&
+                        image.ocr_text.length > 0 &&
+                        `- ${image.ocr_text.slice(0, 50)}${
+                          image.ocr_text.length > 50 ? "..." : ""
+                        }`}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 h-8 w-8 p-0"
+                      onClick={() =>
+                        image.image_data &&
+                        downloadImage(
+                          image.image_data,
+                          `image-page-${image.page + 1}.png`
+                        )
+                      }
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-2">
+                  {image.image_data ? (
+                    <div className="relative aspect-video">
+                      <Image
+                        src={image.image_data}
+                        alt={`Image from page ${image.page + 1}`}
+                        className="object-contain"
+                        fill
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center p-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  )}
+                </CardContent>
+                {image.ocr_text && (
+                  <CardFooter className="block p-4 pt-0">
+                    <div className="text-xs text-gray-500 mt-2">
+                      <strong>OCR Text:</strong> {image.ocr_text}
+                    </div>
+                  </CardFooter>
+                )}
+              </Card>
+            ))}
           </div>
         </TabsContent>
 
         <TabsContent value="pages">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">PDF Pages</h2>
-            {processedPages.length === 0 ? (
-              <p className="text-muted-foreground">
-                No page images were extracted from the document.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                {processedPages.map((page, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">
-                        Page {page.page}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="relative aspect-auto overflow-hidden bg-muted flex items-center justify-center">
-                        {page.image_data ? (
-                          <Image
-                            src={page.image_data}
-                            alt={`Page ${page.page}`}
-                            className="object-contain"
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="p-10 text-center text-muted-foreground flex flex-col items-center justify-center">
-                            {loadingPages[index] ? (
-                              <>
-                                <Loader2 className="h-8 w-8 mb-2 animate-spin text-primary" />
-                                <p>Loading page...</p>
-                              </>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setLoadingPages((prev) => ({
-                                    ...prev,
-                                    [index]: true,
-                                  }));
-                                  fetchPageImage(page.path, index).finally(
-                                    () => {
-                                      setLoadingPages((prev) => {
-                                        const updated = { ...prev };
-                                        delete updated[index];
-                                        return updated;
-                                      });
-                                    }
-                                  );
-                                }}
-                              >
-                                Load Page
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between pt-4">
-                      <div className="text-sm text-muted-foreground truncate max-w-[180px]">
-                        {page.width && page.height
-                          ? `${page.width}×${page.height}`
-                          : page.filename}
-                      </div>
-                      {page.image_data && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (page.image_data) {
-                              downloadImage(
-                                page.image_data,
-                                `page_${page.page}.png`
-                              );
-                            }
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-1" /> Download
-                        </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {processedPages.map((page, index) => (
+              <Card key={index} className="overflow-hidden">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex justify-between items-center">
+                    <span>Page {index + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 h-8 w-8 p-0"
+                      onClick={() =>
+                        page.image_data &&
+                        downloadImage(page.image_data, `page-${index + 1}.png`)
+                      }
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-2">
+                  {page.image_data ? (
+                    <div className="relative w-full" style={{ height: "40vh" }}>
+                      <Image
+                        src={page.image_data}
+                        alt={`Page ${index + 1}`}
+                        className="object-contain"
+                        fill
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center p-12">
+                      {loadingPages[index] ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                      ) : (
+                        <Button onClick={loadVisiblePages}>Load Image</Button>
                       )}
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
