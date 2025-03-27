@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Download,
   FileText,
   Image as ImageIcon,
   Clock,
   Loader2,
+  RefreshCcw,
+  RotateCcw,
 } from "lucide-react";
 import {
   Card,
@@ -17,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/CopyButton";
+import { EditableField } from "@/components/ui/EditableField";
+import { EditableArrayField } from "@/components/ui/EditableArrayField";
 import {
   Tabs,
   TabsContent,
@@ -68,11 +72,57 @@ export function ResultsSection({
   const [activeTab, setActiveTab] = useState("structured");
   const [processedPages, setProcessedPages] = useState<PageData[]>([]);
   const [loadingPages, setLoadingPages] = useState<Record<number, boolean>>({});
+  const [editableData, setEditableData] = useState<StructuredData | null>(null);
+  const [originalData, setOriginalData] = useState<StructuredData | null>(null);
 
-  // Convert path to image_data on init
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const titleRef = useRef<HTMLInputElement>(null);
+  const summaryRef = useRef<HTMLTextAreaElement>(null);
+  const keyPointsRef = useRef<HTMLTextAreaElement>(null);
+  const insightsRef = useRef<HTMLTextAreaElement>(null);
+  const otherFieldRefs = useRef<
+    Record<string, HTMLInputElement | HTMLTextAreaElement | null>
+  >({});
+
+  const [rawKeyPoints, setRawKeyPoints] = useState<string>("");
+  const [rawInsights, setRawInsights] = useState<string>("");
+
+  // Add a state to track raw text values for other array fields
+  const [otherRawFields, setOtherRawFields] = useState<Record<string, string>>(
+    {}
+  );
+
+  useEffect(() => {
+    if (structuredData) {
+      setEditableData(JSON.parse(JSON.stringify(structuredData)));
+      setOriginalData(JSON.parse(JSON.stringify(structuredData)));
+
+      // Initialize raw text values
+      if (structuredData.key_points) {
+        setRawKeyPoints(structuredData.key_points.join("\n"));
+      }
+      if (structuredData.insights_from_images) {
+        setRawInsights(structuredData.insights_from_images.join("\n"));
+      }
+
+      // Initialize other raw fields
+      const newRawFields: Record<string, string> = {};
+      Object.entries(structuredData).forEach(([key, value]) => {
+        if (
+          Array.isArray(value) &&
+          value.length > 0 &&
+          typeof value[0] === "string"
+        ) {
+          newRawFields[key] = value.join("\n");
+        }
+      });
+      setOtherRawFields(newRawFields);
+    }
+  }, [structuredData]);
+
   useEffect(() => {
     if (pages && pages.length > 0) {
-      // Initialize all pages
       const pagesCopy = pages.map((page) => ({
         ...page,
         isLoading: false,
@@ -84,28 +134,22 @@ export function ResultsSection({
     }
   }, [pages]);
 
-  // Create a memoized version of loadVisiblePages
   const loadVisiblePages = useCallback(() => {
-    // Find pages that need loading
     const pagesToLoad = processedPages
       .map((page, index) => ({ page, index }))
       .filter(({ page }) => !page.image_data && page.path);
 
-    // Only load a few at a time
     const batchSize = 3;
     const batch = pagesToLoad.slice(0, batchSize);
 
-    // Mark pages as loading
     const newLoadingState: Record<number, boolean> = {};
     batch.forEach(({ index }) => {
       newLoadingState[index] = true;
     });
     setLoadingPages({ ...loadingPages, ...newLoadingState });
 
-    // Load each page in the batch
     batch.forEach(({ page, index }) => {
       fetchPageImage(page.path, index).finally(() => {
-        // Remove from loading state when done
         setLoadingPages((prev) => {
           const updated = { ...prev };
           delete updated[index];
@@ -115,25 +159,19 @@ export function ResultsSection({
     });
   }, [processedPages, loadingPages]);
 
-  // Batch fetch images when pages tab is active
   useEffect(() => {
     if (activeTab === "pages") {
-      // Load pages in batches to avoid overwhelming the browser
       loadVisiblePages();
     }
   }, [activeTab, loadVisiblePages]);
 
-  // Call this when a batch is finished loading
   useEffect(() => {
-    // If we're on pages tab and there are no pages currently loading
     if (activeTab === "pages" && Object.keys(loadingPages).length === 0) {
-      // Check if there are any pages still needing to be loaded
       const hasUnloadedPages = processedPages.some(
         (page) => !page.image_data && page.path
       );
 
       if (hasUnloadedPages) {
-        // Load the next batch after a short delay
         const timer = setTimeout(() => {
           loadVisiblePages();
         }, 100);
@@ -142,6 +180,147 @@ export function ResultsSection({
       }
     }
   }, [activeTab, loadingPages, processedPages, loadVisiblePages]);
+
+  const handleResetToOriginal = () => {
+    if (originalData) {
+      setEditableData(JSON.parse(JSON.stringify(originalData)));
+
+      // Reset raw text values
+      if (originalData.key_points) {
+        setRawKeyPoints(originalData.key_points.join("\n"));
+      }
+      if (originalData.insights_from_images) {
+        setRawInsights(originalData.insights_from_images.join("\n"));
+      }
+
+      // Reset other raw fields
+      const newRawFields: Record<string, string> = {};
+      Object.entries(originalData).forEach(([key, value]) => {
+        if (
+          Array.isArray(value) &&
+          value.length > 0 &&
+          typeof value[0] === "string"
+        ) {
+          newRawFields[key] = value.join("\n");
+        }
+      });
+      setOtherRawFields(newRawFields);
+
+      setFocusedField(null);
+    }
+  };
+
+  const handleResetField = (field: string, index?: number) => {
+    if (!originalData || !editableData) return;
+
+    if (
+      index !== undefined &&
+      Array.isArray(originalData[field]) &&
+      Array.isArray(editableData[field])
+    ) {
+      const newArray = [...editableData[field]];
+      newArray[index] = originalData[field][index];
+
+      setEditableData({
+        ...editableData,
+        [field]: newArray,
+      });
+    } else if (originalData[field] !== undefined) {
+      setEditableData({
+        ...editableData,
+        [field]: originalData[field],
+      });
+
+      // Update raw text fields when resetting
+      if (field === "key_points" && originalData.key_points) {
+        setRawKeyPoints(originalData.key_points.join("\n"));
+      } else if (
+        field === "insights_from_images" &&
+        originalData.insights_from_images
+      ) {
+        setRawInsights(originalData.insights_from_images.join("\n"));
+      } else if (
+        field in originalData &&
+        Array.isArray(originalData[field]) &&
+        originalData[field].length > 0 &&
+        typeof originalData[field][0] === "string"
+      ) {
+        // Type assertion since we've checked it's an array of strings
+        const stringArray = originalData[field] as string[];
+        setOtherRawFields((prev) => ({
+          ...prev,
+          [field]: stringArray.join("\n"),
+        }));
+      }
+    }
+  };
+
+  const handleKeyPointsChange = (
+    rawValue: string,
+    processedArray: string[]
+  ) => {
+    setRawKeyPoints(rawValue);
+
+    if (editableData && editableData.key_points) {
+      setEditableData({
+        ...editableData,
+        key_points: processedArray,
+      });
+    }
+  };
+
+  const handleInsightsChange = (rawValue: string, processedArray: string[]) => {
+    setRawInsights(rawValue);
+
+    if (editableData && editableData.insights_from_images) {
+      setEditableData({
+        ...editableData,
+        insights_from_images: processedArray,
+      });
+    }
+  };
+
+  const handleStringFieldChange = (field: string, value: string) => {
+    if (editableData) {
+      setEditableData({
+        ...editableData,
+        [field]: value,
+      });
+    }
+  };
+
+  const handleArrayFieldChange = (
+    field: string,
+    rawValue: string,
+    processedArray: string[]
+  ) => {
+    if (editableData) {
+      // Update raw text state
+      setOtherRawFields((prev) => ({
+        ...prev,
+        [field]: rawValue,
+      }));
+
+      // Update array in editable data
+      setEditableData({
+        ...editableData,
+        [field]: processedArray,
+      });
+    }
+  };
+
+  const handleFieldFocus = (fieldId: string) => {
+    setFocusedField(fieldId);
+  };
+
+  const handleFieldBlur = () => {
+    setFocusedField(null);
+  };
+
+  // Force EditableArrayField to exit edit mode when switching tabs
+  useEffect(() => {
+    setFocusedField(null);
+  }, [activeTab]);
 
   if (isLoading) {
     const step1Complete = processingStep.step > 1;
@@ -156,7 +335,6 @@ export function ResultsSection({
       <div className="w-full py-12 flex flex-col items-center justify-center">
         <div className="w-full max-w-lg p-6 bg-background border rounded-lg shadow-sm">
           <div className="flex flex-col items-center space-y-6">
-            {/* <Loader2 className="h-12 w-12 text-primary animate-spin" /> */}
             <div className="w-16 h-16 relative flex items-center justify-center">
               <IdeoLoader size="medium" />
             </div>
@@ -307,7 +485,6 @@ export function ResultsSection({
 
   const fetchPageImage = async (path: string, pageIndex: number) => {
     try {
-      // Extract only the filename from the path to use with the mounted static directory
       const filename = path.split("/").pop() || "";
       const response = await fetch(`http://localhost:8000/pages/${filename}`);
 
@@ -322,7 +499,6 @@ export function ResultsSection({
       return new Promise<void>((resolve, reject) => {
         reader.onload = () => {
           if (reader.result && typeof reader.result === "string") {
-            // Create a new array with the updated page
             setProcessedPages((prevPages) => {
               const updatedPages = [...prevPages];
               updatedPages[pageIndex] = {
@@ -364,98 +540,88 @@ export function ResultsSection({
         </TabsList>
 
         <TabsContent value="structured">
-          {structuredData && (
+          {editableData && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Extracted Content</h2>
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Extracted Content</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={handleResetToOriginal}
+                  title="Reset to original AI results"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  <span>Reset to Original</span>
+                </Button>
+              </div>
 
               <div className="space-y-4">
-                {structuredData.title && (
-                  <div>
-                    <label
-                      htmlFor="title"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Title
-                    </label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="title"
-                        value={structuredData.title}
-                        readOnly
-                        className="flex-1"
-                      />
-                      <CopyButton text={structuredData.title} />
-                    </div>
-                  </div>
+                {editableData.title && (
+                  <EditableField
+                    fieldId="title"
+                    label="Title"
+                    value={editableData.title}
+                    isTextArea={true}
+                    rows={2}
+                    onChange={(value) =>
+                      handleStringFieldChange("title", value)
+                    }
+                    onFocus={handleFieldFocus}
+                    onBlur={handleFieldBlur}
+                    onReset={() => handleResetField("title")}
+                  />
                 )}
 
-                {structuredData.summary && (
-                  <div>
-                    <label
-                      htmlFor="summary"
-                      className="block text-sm font-medium mb-1"
-                    >
-                      Summary
-                    </label>
-                    <div className="flex space-x-2">
-                      <Textarea
-                        id="summary"
-                        value={structuredData.summary}
-                        readOnly
-                        rows={4}
-                        className="flex-1"
-                      />
-                      <CopyButton
-                        text={structuredData.summary}
-                        className="self-start"
-                      />
-                    </div>
-                  </div>
+                {editableData.summary && (
+                  <EditableField
+                    fieldId="summary"
+                    label="Summary"
+                    value={editableData.summary}
+                    isTextArea={true}
+                    rows={4}
+                    onChange={(value) =>
+                      handleStringFieldChange("summary", value)
+                    }
+                    onFocus={handleFieldFocus}
+                    onBlur={handleFieldBlur}
+                    onReset={() => handleResetField("summary")}
+                  />
                 )}
 
-                {structuredData.key_points &&
-                  structuredData.key_points.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Key Points
-                      </label>
-                      <ul className="space-y-2">
-                        {structuredData.key_points.map((point, index) => (
-                          <li key={index} className="flex space-x-2">
-                            <Input value={point} readOnly className="flex-1" />
-                            <CopyButton text={point} />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                {editableData.key_points &&
+                  editableData.key_points.length > 0 && (
+                    <EditableArrayField
+                      fieldId="key_points"
+                      label="Key Points"
+                      value={editableData.key_points}
+                      rawValue={rawKeyPoints}
+                      rows={6}
+                      placeholder="Enter key points, one per line"
+                      onChange={handleKeyPointsChange}
+                      onFocus={handleFieldFocus}
+                      onBlur={handleFieldBlur}
+                      onReset={() => handleResetField("key_points")}
+                    />
                   )}
 
-                {structuredData.insights_from_images &&
-                  structuredData.insights_from_images.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Insights from Images
-                      </label>
-                      <ul className="space-y-2">
-                        {structuredData.insights_from_images.map(
-                          (insight, index) => (
-                            <li key={index} className="flex space-x-2">
-                              <Input
-                                value={insight}
-                                readOnly
-                                className="flex-1"
-                              />
-                              <CopyButton text={insight} />
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
+                {editableData.insights_from_images &&
+                  editableData.insights_from_images.length > 0 && (
+                    <EditableArrayField
+                      fieldId="insights_from_images"
+                      label="Insights from Images"
+                      value={editableData.insights_from_images}
+                      rawValue={rawInsights}
+                      rows={6}
+                      placeholder="Enter insights, one per line"
+                      onChange={handleInsightsChange}
+                      onFocus={handleFieldFocus}
+                      onBlur={handleFieldBlur}
+                      onReset={() => handleResetField("insights_from_images")}
+                    />
                   )}
 
-                {/* Render any additional fields from the schema */}
-                {Object.entries(structuredData).map(([key, value]) => {
-                  // Skip the fields we've already rendered
+                {Object.entries(editableData).map(([key, value]) => {
                   if (
                     [
                       "title",
@@ -467,45 +633,42 @@ export function ResultsSection({
                     return null;
                   }
 
-                  // Render arrays
                   if (Array.isArray(value) && value.length > 0) {
+                    const fieldId = `field_${key}`;
                     return (
-                      <div key={key}>
-                        <label className="block text-sm font-medium mb-1 capitalize">
-                          {key.replace(/_/g, " ")}
-                        </label>
-                        <ul className="space-y-2">
-                          {value.map((item, index) => (
-                            <li key={index} className="flex space-x-2">
-                              <Input value={item} readOnly className="flex-1" />
-                              <CopyButton text={item} />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      <EditableArrayField
+                        key={key}
+                        fieldId={fieldId}
+                        label={key.replace(/_/g, " ")}
+                        value={value as string[]}
+                        rawValue={otherRawFields[key] || value.join("\n")}
+                        rows={6}
+                        placeholder="Enter items, one per line"
+                        onChange={(rawValue, processedArray) =>
+                          handleArrayFieldChange(key, rawValue, processedArray)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField(key)}
+                      />
                     );
                   }
 
-                  // Render string values
                   if (typeof value === "string" && value.trim() !== "") {
+                    const fieldId = `field_${key}`;
                     return (
-                      <div key={key}>
-                        <label
-                          htmlFor={key}
-                          className="block text-sm font-medium mb-1 capitalize"
-                        >
-                          {key.replace(/_/g, " ")}
-                        </label>
-                        <div className="flex space-x-2">
-                          <Input
-                            id={key}
-                            value={value}
-                            readOnly
-                            className="flex-1"
-                          />
-                          <CopyButton text={value} />
-                        </div>
-                      </div>
+                      <EditableField
+                        key={key}
+                        fieldId={fieldId}
+                        label={key.replace(/_/g, " ")}
+                        value={value}
+                        onChange={(newValue) =>
+                          handleStringFieldChange(key, newValue)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField(key)}
+                      />
                     );
                   }
 
