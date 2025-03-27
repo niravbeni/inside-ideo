@@ -6,9 +6,10 @@ import { copyToClipboard } from "@/lib/utils";
 interface CopyButtonProps {
   text: string;
   className?: string;
+  size?: "sm" | "lg" | "icon" | "default";
 }
 
-export function CopyButton({ text, className }: CopyButtonProps) {
+export function CopyButton({ text, className, size = "sm" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -22,12 +23,12 @@ export function CopyButton({ text, className }: CopyButtonProps) {
   return (
     <Button
       variant="outline"
-      size="sm"
+      size={size}
       className={className}
       onClick={handleCopy}
+      title={copied ? "Copied!" : "Copy to clipboard"}
     >
       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      <span className="ml-2">{copied ? "Copied" : "Copy"}</span>
     </Button>
   );
 }

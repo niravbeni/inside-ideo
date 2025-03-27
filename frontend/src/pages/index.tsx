@@ -3,7 +3,7 @@ import Head from "next/head";
 import { UploadSection } from "@/components/UploadSection";
 import { ResultsSection } from "@/components/ResultsSection";
 import { pdfService, ProcessPDFResponse } from "@/api/pdfService";
-import IdeoLoaderCursor from "@/components/IdeoLoaderCursor";
+// import IdeoLoaderCursor from "@/components/IdeoLoaderCursor";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
@@ -101,7 +101,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <IdeoLoaderCursor isLoading={isLoading} />
+      {/* <IdeoLoaderCursor isLoading={isLoading} /> */}
 
       <main className="min-h-screen bg-background">
         <div className="container py-10">
