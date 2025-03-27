@@ -107,11 +107,11 @@ export default function Home() {
         <div className="container py-10">
           <header className="mb-10 text-center">
             <h1 className="text-4xl font-bold mb-2">
-              PDF Extraction + LLM Structuring
+              Case Study Documentation Tool
             </h1>
             <p className="text-muted-foreground text-lg">
               Extract text and images from PDFs and convert them into structured
-              outputs
+              outputs for documentation.
             </p>
           </header>
 
