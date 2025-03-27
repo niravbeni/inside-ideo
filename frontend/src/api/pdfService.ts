@@ -4,33 +4,48 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:8000";
 
 export interface StructuredData {
-  title?: string;
-  summary?: string;
-  key_points?: string[];
-  insights_from_images?: string[];
+  summary: string;
+  key_points: string[];
+  insights: string[];
   // Index signature for additional string fields
   [key: string]: string | string[] | undefined;
 }
 
+export interface ImageData {
+  filename: string;
+  page: number;
+  ocr_text: string;
+  image_description?: string;
+  image_data: string;
+  width?: number;
+  height?: number;
+  pdf_index?: number;
+}
+
+export interface PageData {
+  filename: string;
+  page: number;
+  path: string;
+  image_data?: string;
+  width?: number;
+  height?: number;
+  pdf_index?: number;
+}
+
 export interface ProcessPDFResponse {
-  structured_data: StructuredData;
-  images: {
-    filename: string;
-    page: number;
-    ocr_text: string;
-    image_data: string;
-    width?: number;
-    height?: number;
-    source_pdf?: string;
-  }[];
-  pages: {
-    filename: string;
-    page: number;
-    path: string;
-    width?: number;
-    height?: number;
-    source_pdf?: string;
-  }[];
+  session_id: string;
+  extraction: {
+    text: string;
+    images: ImageData[];
+    pages: PageData[];
+  };
+  ai_analysis: StructuredData;
+  processing_time: {
+    extraction: number;
+    ocr: number;
+    openai: number;
+    total: number;
+  };
 }
 
 export interface DefaultPromptResponse {
@@ -50,8 +65,8 @@ export const pdfService = {
    */
   async processPDF(
     files: File[],
-    prompt?: string,
-    schema?: object
+    customPrompt?: string,
+    customSchema?: object
   ): Promise<ProcessPDFResponse> {
     // Create form data
     const formData = new FormData();
@@ -61,17 +76,21 @@ export const pdfService = {
       formData.append("files", file);
     });
 
+    // Append settings
+    formData.append("use_ocr", "true");
+    formData.append("use_openai", "true");
+
     // Append optional prompt and schema
-    if (prompt) {
-      formData.append("prompt", prompt);
+    if (customPrompt) {
+      formData.append("custom_prompt", customPrompt);
     }
 
-    if (schema) {
-      formData.append("schema", JSON.stringify(schema));
+    if (customSchema) {
+      formData.append("custom_schema", JSON.stringify(customSchema));
     }
 
     const response = await axios.post<ProcessPDFResponse>(
-      `${API_BASE_URL}/process-pdf`,
+      `${API_BASE_URL}/api/process-pdf`,
       formData,
       {
         headers: {
@@ -87,19 +106,15 @@ export const pdfService = {
    * Get the default prompt
    */
   async getDefaultPrompt(): Promise<string> {
-    const response = await axios.get<DefaultPromptResponse>(
-      `${API_BASE_URL}/default-prompt`
-    );
-    return response.data.prompt;
+    const response = await axios.get<string>(`${API_BASE_URL}/api/prompt`);
+    return response.data;
   },
 
   /**
    * Get the default schema
    */
-  async getDefaultSchema(): Promise<DefaultSchemaResponse> {
-    const response = await axios.get<DefaultSchemaResponse>(
-      `${API_BASE_URL}/default-schema`
-    );
+  async getDefaultSchema(): Promise<object> {
+    const response = await axios.get<object>(`${API_BASE_URL}/api/schema`);
     return response.data;
   },
 };

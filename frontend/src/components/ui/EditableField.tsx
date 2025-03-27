@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Input } from "./input";
-import { Textarea } from "./textarea";
+import React, { useState, useRef } from "react";
 import { Button } from "./button";
+import { Textarea } from "./textarea";
 import { RotateCcw, Edit, Check } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
 
@@ -9,7 +8,6 @@ interface EditableFieldProps {
   fieldId: string;
   label: string;
   value: string;
-  initialValue?: string;
   isTextArea?: boolean;
   rows?: number;
   placeholder?: string;
@@ -23,21 +21,18 @@ export function EditableField({
   fieldId,
   label,
   value,
-  initialValue,
-  isTextArea = false,
-  rows = 4,
-  placeholder = "",
+  isTextArea = true,
+  rows = 3,
+  placeholder = "Enter text here",
   onChange,
   onFocus,
   onBlur,
   onReset,
 }: EditableFieldProps) {
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
   };
 
@@ -57,62 +52,13 @@ export function EditableField({
 
   const toggleEdit = () => {
     if (!isEditing) {
-      handleFocus();
+      setIsEditing(true);
+      if (onFocus) onFocus(fieldId);
       setTimeout(() => inputRef.current?.focus(), 0);
     } else {
-      handleBlur();
+      setIsEditing(false);
+      if (onBlur) onBlur();
     }
-  };
-
-  // Render display mode
-  const renderDisplayValue = () => {
-    const displayValue = value || placeholder;
-    const isEmpty = !value || value.trim() === "";
-
-    return (
-      <div
-        className="flex-1 border rounded-md p-3 bg-background min-h-[2.5rem] cursor-text hover:border-primary transition-colors relative group"
-        onClick={() => {
-          handleFocus();
-          setTimeout(() => inputRef.current?.focus(), 0);
-        }}
-      >
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleEdit();
-            }}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-        </div>
-        {isTextArea ? (
-          <div className="whitespace-pre-wrap text-sm">
-            {isEmpty ? (
-              <span className="text-muted-foreground italic">
-                Click to add content
-              </span>
-            ) : (
-              displayValue
-            )}
-          </div>
-        ) : (
-          <div className="text-sm">
-            {isEmpty ? (
-              <span className="text-muted-foreground italic">
-                Click to add content
-              </span>
-            ) : (
-              displayValue
-            )}
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -121,39 +67,54 @@ export function EditableField({
         {label}
       </label>
       <div className="flex space-x-2">
-        {isEditing ? (
-          isTextArea ? (
+        <div
+          className={`flex-1 border rounded-md p-3 bg-background ${
+            !isEditing ? "hover:border-primary cursor-text" : ""
+          } transition-colors relative group`}
+          onClick={() => {
+            if (!isEditing) {
+              toggleEdit();
+            }
+          }}
+        >
+          {!isEditing && (
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleEdit();
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          {isEditing ? (
             <Textarea
+              ref={inputRef}
               id={fieldId}
               value={value}
-              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
               rows={rows}
-              className="flex-1"
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
               placeholder={placeholder}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              className="w-full resize-none border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              autoFocus
             />
           ) : (
-            <Input
-              id={fieldId}
-              value={value}
-              ref={inputRef as React.RefObject<HTMLInputElement>}
-              className="flex-1"
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder={placeholder}
-            />
-          )
-        ) : (
-          renderDisplayValue()
-        )}
-        <div
-          className={`flex ${
-            isTextArea ? "flex-col space-y-1 self-start" : "space-x-1"
-          }`}
-        >
+            <div className="whitespace-pre-wrap text-sm min-h-[2.5rem]">
+              {value || (
+                <span className="text-muted-foreground italic">
+                  Click to edit
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col space-y-1">
           {isEditing ? (
             <Button
               variant="outline"

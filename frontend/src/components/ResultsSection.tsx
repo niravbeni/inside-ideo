@@ -7,6 +7,11 @@ import {
   Loader2,
   RefreshCcw,
   RotateCcw,
+  Edit,
+  Check,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   Card,
@@ -21,21 +26,18 @@ import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/CopyButton";
 import { EditableField } from "@/components/ui/EditableField";
 import { EditableArrayField } from "@/components/ui/EditableArrayField";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StructuredData } from "@/api/pdfService";
 import Image from "next/image";
 import IdeoLoader from "./IdeoLoader";
+import { cn } from "@/lib/utils";
 
 interface ImageData {
   filename: string;
   page: number;
   ocr_text: string;
   image_data: string;
+  image_description?: string;
   width?: number;
   height?: number;
   source_pdf?: string;
@@ -60,6 +62,54 @@ interface ResultsSectionProps {
     step: number;
     message: string;
   };
+}
+
+interface EditableFieldProps {
+  fieldId: string;
+  label: string;
+  value: string;
+  isTextArea?: boolean;
+  rows?: number;
+  onChange: (value: string) => void;
+  onFocus: (fieldId: string) => void;
+  onBlur: () => void;
+  onReset: () => void;
+}
+
+// Component to handle showing/hiding long image descriptions
+function ImageDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  // If text is short enough, just show it
+  const isShort = text.length < 100;
+
+  if (isShort) {
+    return (
+      <>
+        <strong>Image Content:</strong> {text}
+      </>
+    );
+  }
+
+  return (
+    <div>
+      <strong>Image Content:</strong>{" "}
+      {expanded ? text : text.substring(0, 100) + "..."}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="ml-1 text-primary inline-flex items-center"
+      >
+        {expanded ? (
+          <>
+            Show less <ChevronUp className="h-3 w-3 ml-1" />
+          </>
+        ) : (
+          <>
+            Show more <ChevronDown className="h-3 w-3 ml-1" />
+          </>
+        )}
+      </button>
+    </div>
+  );
 }
 
 export function ResultsSection({
@@ -103,8 +153,8 @@ export function ResultsSection({
       if (structuredData.key_points) {
         setRawKeyPoints(structuredData.key_points.join("\n"));
       }
-      if (structuredData.insights_from_images) {
-        setRawInsights(structuredData.insights_from_images.join("\n"));
+      if (structuredData.insights) {
+        setRawInsights(structuredData.insights.join("\n"));
       }
 
       // Initialize other raw fields
@@ -190,8 +240,8 @@ export function ResultsSection({
       if (originalData.key_points) {
         setRawKeyPoints(originalData.key_points.join("\n"));
       }
-      if (originalData.insights_from_images) {
-        setRawInsights(originalData.insights_from_images.join("\n"));
+      if (originalData.insights) {
+        setRawInsights(originalData.insights.join("\n"));
       }
 
       // Reset other raw fields
@@ -235,11 +285,8 @@ export function ResultsSection({
       // Update raw text fields when resetting
       if (field === "key_points" && originalData.key_points) {
         setRawKeyPoints(originalData.key_points.join("\n"));
-      } else if (
-        field === "insights_from_images" &&
-        originalData.insights_from_images
-      ) {
-        setRawInsights(originalData.insights_from_images.join("\n"));
+      } else if (field === "insights" && originalData.insights) {
+        setRawInsights(originalData.insights.join("\n"));
       } else if (
         field in originalData &&
         Array.isArray(originalData[field]) &&
@@ -273,10 +320,10 @@ export function ResultsSection({
   const handleInsightsChange = (rawValue: string, processedArray: string[]) => {
     setRawInsights(rawValue);
 
-    if (editableData && editableData.insights_from_images) {
+    if (editableData && editableData.insights) {
       setEditableData({
         ...editableData,
-        insights_from_images: processedArray,
+        insights: processedArray,
       });
     }
   };
@@ -486,8 +533,20 @@ export function ResultsSection({
 
   const fetchPageImage = async (path: string, pageIndex: number) => {
     try {
-      const filename = path.split("/").pop() || "";
-      const response = await fetch(`http://localhost:8000/pages/${filename}`);
+      // Extract session_id and filename from the path
+      // Path format: output/SESSION_ID/pages/FILENAME
+      const pathParts = path.split("/");
+      const filename = pathParts.pop() || "";
+      const session_id = pathParts[pathParts.indexOf("output") + 1] || "";
+
+      if (!session_id) {
+        console.error("Could not extract session_id from path:", path);
+        throw new Error("Invalid path format");
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/api/pages/${session_id}/${filename}`
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -558,7 +617,11 @@ export function ResultsSection({
                     <EditableField
                       fieldId="title"
                       label="Title"
-                      value={editableData.title}
+                      value={
+                        typeof editableData.title === "string"
+                          ? editableData.title
+                          : ""
+                      }
                       isTextArea={true}
                       rows={2}
                       onChange={(value) =>
@@ -574,7 +637,11 @@ export function ResultsSection({
                     <EditableField
                       fieldId="summary"
                       label="Summary"
-                      value={editableData.summary}
+                      value={
+                        typeof editableData.summary === "string"
+                          ? editableData.summary
+                          : ""
+                      }
                       isTextArea={true}
                       rows={4}
                       onChange={(value) =>
@@ -602,19 +669,19 @@ export function ResultsSection({
                       />
                     )}
 
-                  {editableData.insights_from_images &&
-                    editableData.insights_from_images.length > 0 && (
+                  {editableData.insights &&
+                    editableData.insights.length > 0 && (
                       <EditableArrayField
-                        fieldId="insights_from_images"
-                        label="Insights from Images"
-                        value={editableData.insights_from_images}
+                        fieldId="insights"
+                        label="Insights"
+                        value={editableData.insights}
                         rawValue={rawInsights}
                         rows={6}
                         placeholder="Enter insights, one per line"
                         onChange={handleInsightsChange}
                         onFocus={handleFieldFocus}
                         onBlur={handleFieldBlur}
-                        onReset={() => handleResetField("insights_from_images")}
+                        onReset={() => handleResetField("insights")}
                       />
                     )}
 
@@ -624,7 +691,7 @@ export function ResultsSection({
                         "title",
                         "summary",
                         "key_points",
-                        "insights_from_images",
+                        "insights",
                         // Add fields that should be shown in other tabs
                         "case_study_title",
                         "case_study_description",
@@ -647,11 +714,19 @@ export function ResultsSection({
                         <EditableArrayField
                           key={key}
                           fieldId={fieldId}
-                          label={key.replace(/_/g, " ")}
-                          value={value as string[]}
-                          rawValue={otherRawFields[key] || value.join("\n")}
-                          rows={6}
-                          placeholder="Enter items, one per line"
+                          label={key
+                            .split("_")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ")}
+                          value={value}
+                          rawValue={value.join("\n")}
+                          rows={4}
+                          placeholder={`Enter ${key
+                            .split("_")
+                            .join(" ")}, one per line`}
                           onChange={(rawValue, processedArray) =>
                             handleArrayFieldChange(
                               key,
@@ -664,16 +739,21 @@ export function ResultsSection({
                           onReset={() => handleResetField(key)}
                         />
                       );
-                    }
-
-                    if (typeof value === "string" && value.trim() !== "") {
-                      const fieldId = `field_${key}`;
+                    } else if (typeof value === "string") {
                       return (
                         <EditableField
                           key={key}
-                          fieldId={fieldId}
-                          label={key.replace(/_/g, " ")}
+                          fieldId={`field_${key}`}
+                          label={key
+                            .split("_")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            )
+                            .join(" ")}
                           value={value}
+                          isTextArea={true}
+                          rows={3}
                           onChange={(newValue) =>
                             handleStringFieldChange(key, newValue)
                           }
@@ -683,7 +763,6 @@ export function ResultsSection({
                         />
                       );
                     }
-
                     return null;
                   })}
                 </TabsContent>
@@ -726,11 +805,7 @@ export function ResultsSection({
                   <CardTitle className="text-sm flex justify-between items-center">
                     <span>
                       Page {image.page + 1}{" "}
-                      {image.ocr_text &&
-                        image.ocr_text.length > 0 &&
-                        `- ${image.ocr_text.slice(0, 50)}${
-                          image.ocr_text.length > 50 ? "..." : ""
-                        }`}
+                      {/* Use a shorter title or just page number */}
                     </span>
                     <Button
                       variant="ghost"
@@ -764,13 +839,18 @@ export function ResultsSection({
                     </div>
                   )}
                 </CardContent>
-                {image.ocr_text && (
-                  <CardFooter className="block p-4 pt-0">
-                    <div className="text-xs text-gray-500 mt-2">
-                      <strong>OCR Text:</strong> {image.ocr_text}
-                    </div>
-                  </CardFooter>
-                )}
+                <CardFooter className="block p-4 pt-0">
+                  <div className="text-xs text-gray-500 mt-2">
+                    {image.image_description ? (
+                      <ImageDescription text={image.image_description} />
+                    ) : (
+                      <>
+                        <strong>OCR Text:</strong>{" "}
+                        {image.ocr_text || "No text detected in image"}
+                      </>
+                    )}
+                  </div>
+                </CardFooter>
               </Card>
             ))}
           </div>

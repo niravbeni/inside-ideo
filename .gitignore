@@ -19,14 +19,48 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
-.env
+
+# Virtual Environment
 venv/
-backend/venv/
-backend/__pycache__/
-backend/uploads/
-backend/pages/
-backend/images/
+env/
+ENV/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+pages/
+images/
+
+# Logs
+*.log
+logs/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Node.js / Next.js
 node_modules/
@@ -77,19 +111,4 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-*.swo
-
-# Project specific
-backend/output/
-backend/pages/
-
-# Misc
-.DS_Store
-*.pem
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log* 
+*.swo 

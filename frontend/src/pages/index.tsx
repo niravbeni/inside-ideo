@@ -106,9 +106,7 @@ export default function Home() {
       <main className="min-h-screen bg-background">
         <div className="container py-10">
           <header className="mb-10 text-center">
-            <h1 className="text-4xl font-bold mb-2">
-              Case Study Documentation Tool
-            </h1>
+            <h1 className="text-4xl font-bold mb-2">IDEO Documentation Tool</h1>
             <p className="text-muted-foreground text-lg">
               Extract text and images from PDFs and convert them into structured
               outputs for documentation.
@@ -140,9 +138,9 @@ export default function Home() {
             </div>
 
             <ResultsSection
-              structuredData={processedResult?.structured_data || null}
-              images={processedResult?.images || []}
-              pages={processedResult?.pages || []}
+              structuredData={processedResult?.ai_analysis || null}
+              images={processedResult?.extraction?.images || []}
+              pages={processedResult?.extraction?.pages || []}
               isLoading={isLoading}
               processingStep={processingProgress}
             />
