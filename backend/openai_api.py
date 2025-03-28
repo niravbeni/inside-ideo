@@ -215,7 +215,7 @@ class OpenAIHandler:
         """Process a batch of images in a single API call"""
         # Extract base64 content from all images
         image_contents = []
-        for img in images:
+        for i, img in enumerate(images):
             image_data = img["image_data"]
             # If the data URL format is correct, extract the base64 content
             if image_data.startswith('data:image/'):
@@ -232,126 +232,63 @@ class OpenAIHandler:
             })
         
         # Create message content with text and all images
+        # Modified prompt to enforce strict ordering
         message_content = [
             {
                 "type": "text",
-                "text": f"Describe each of these {len(images)} images briefly in 1-2 complete sentences. Provide a separate description for each image, numbered from 1 to {len(images)}. Just use simple numbers like '1.' without adding the word 'Image'. Focus on the general content without excessive detail. Make sure each description is complete and not cut off."
+                "text": f"You will receive {len(images)} images. For each image, provide a brief 1-2 sentence description. IMPORTANT: Your response MUST follow this EXACT format:\n\n1. [Description for first image]\n2. [Description for second image]\n... and so on.\n\nDo not add any other text or formatting. Start each line with just the number and period."
             }
         ]
         message_content.extend(image_contents)
         
         # Call the OpenAI API
         response = self.client.chat.completions.create(
-            model="gpt-4o-mini",  # Using smaller, more efficient model
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "user",
                     "content": message_content
                 }
             ],
-            max_tokens=150 * len(images)  # Increase max tokens to prevent truncation
+            max_tokens=150 * len(images)
         )
         
         # Get the response and parse descriptions
         response_content = response.choices[0].message.content
         
-        # Parse the descriptions using more advanced parsing
-        descriptions = self._parse_numbered_descriptions(response_content, len(images))
+        # Simplified parsing logic that enforces strict ordering
+        descriptions = []
+        lines = [line.strip() for line in response_content.split('\n') if line.strip()]
         
-        # Clean up descriptions - remove any markdown formatting or prefixes
-        cleaned_descriptions = []
-        for desc in descriptions:
-            # Remove markdown formatting (bold, italics)
-            clean_desc = desc.replace('**', '').replace('*', '')
-            
-            # Remove any "Image X:" prefixes that might have been added
-            clean_desc = re.sub(r'^(Image\s+\d+[:.]\s*)', '', clean_desc, flags=re.IGNORECASE)
-            
-            # Make sure the first letter is capitalized
-            if clean_desc and len(clean_desc) > 0:
-                clean_desc = clean_desc[0].upper() + clean_desc[1:]
-                
-            cleaned_descriptions.append(clean_desc)
-        
-        logger.info(f"Generated {len(cleaned_descriptions)} image descriptions in a single API call")
-        return cleaned_descriptions
-        
-    def _parse_numbered_descriptions(self, text: str, expected_count: int) -> List[str]:
-        """Parse numbered descriptions from text with multiple fallback strategies"""
-        # Strategy 1: Look for numbered lines with specific formats
-        patterns = [
-            r'(?:^|\n)\s*(\d+)[:.]\s*(.*?)(?=(?:\n\s*\d+[:.]\s*)|$)',  # "1: description" or "1. description"
-            r'(?:^|\n)\s*Image\s*(\d+)[:.]\s*(.*?)(?=(?:\n\s*Image\s*\d+[:.]\s*)|$)',  # "Image 1: description"
-            r'(?:^|\n)\s*Image\s*#(\d+)[:.]\s*(.*?)(?=(?:\n\s*Image\s*#\d+[:.]\s*)|$)',  # "Image #1: description"
-        ]
-        
-        for pattern in patterns:
-            matches = re.findall(pattern, text, re.DOTALL)
-            if matches:
-                # Check if numbers are sequential and match expected count
-                descriptions = [None] * expected_count
-                has_all_numbers = True
-                
-                for num_str, desc in matches:
-                    try:
-                        index = int(num_str) - 1  # Convert to 0-based index
-                        if 0 <= index < expected_count:
-                            descriptions[index] = desc.strip()
-                        else:
-                            has_all_numbers = False
-                            break
-                    except ValueError:
-                        has_all_numbers = False
-                        break
-                
-                # If we have all descriptions, return them
-                if has_all_numbers and all(d is not None for d in descriptions):
-                    return descriptions
-        
-        # Strategy 2: Split by lines starting with numbers
-        try:
-            lines = text.split('\n')
-            descriptions = []
-            current_description = ""
-            
+        # Process each line that starts with a number
+        for i in range(len(images)):
+            expected_prefix = f"{i+1}."
+            # Find the line that starts with our expected number
+            matching_line = None
             for line in lines:
-                # Check if this is a new numbered line
-                match = re.match(r'^\s*(\d+)[.:]', line)
-                if match:
-                    if current_description:
-                        descriptions.append(current_description.strip())
-                    current_description = re.sub(r'^\s*\d+[.:]', '', line).strip()
-                else:
-                    current_description += " " + line.strip()
+                if line.startswith(expected_prefix):
+                    matching_line = line
+                    break
             
-            # Add the last description
-            if current_description:
-                descriptions.append(current_description.strip())
-                
-            # If we have the correct number, return them
-            if len(descriptions) == expected_count:
-                return descriptions
-        except Exception:
-            pass
+            if matching_line:
+                # Remove the number prefix and clean up
+                desc = matching_line[len(expected_prefix):].strip()
+                # Capitalize first letter if needed
+                if desc and len(desc) > 0:
+                    desc = desc[0].upper() + desc[1:]
+                descriptions.append(desc)
+            else:
+                # If we can't find a matching line, add a placeholder
+                descriptions.append(f"Description for image {i+1} not found")
+                logger.warning(f"Missing description for image {i+1}")
         
-        # Strategy 3: Simple paragraph splitting as fallback
-        try:
-            paragraphs = re.split(r'\n\s*\n', text)
-            descriptions = [p.strip() for p in paragraphs if p.strip()]
-            
-            # If we have the correct number, return them
-            if len(descriptions) == expected_count:
-                return descriptions
-        except Exception:
-            pass
-            
-        # Final fallback: Just split content evenly
-        logger.warning("All parsing strategies failed. Splitting content evenly.")
-        total_chars = len(text)
-        chars_per_image = total_chars // expected_count
-        descriptions = [
-            text[i*chars_per_image:(i+1)*chars_per_image].strip()
-            for i in range(expected_count)
-        ]
+        # Ensure we have exactly the right number of descriptions
+        if len(descriptions) != len(images):
+            logger.error(f"Mismatch in number of descriptions: got {len(descriptions)}, expected {len(images)}")
+            # Pad with placeholders if needed
+            while len(descriptions) < len(images):
+                descriptions.append(f"Description for image {len(descriptions) + 1} not found")
+            # Truncate if we somehow got too many
+            descriptions = descriptions[:len(images)]
         
         return descriptions
