@@ -32,6 +32,7 @@ export function EditableArrayField({
 }: EditableArrayFieldProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [editItems, setEditItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
 
@@ -84,6 +85,7 @@ export function EditableArrayField({
 
   const handleFocus = () => {
     setIsEditing(true);
+    setIsFocused(true);
     if (onFocus) onFocus(fieldId);
   };
 
@@ -95,6 +97,7 @@ export function EditableArrayField({
 
   const handleSaveChanges = () => {
     setIsEditing(false);
+    setIsFocused(false);
     if (onBlur) onBlur();
   };
 
@@ -102,6 +105,7 @@ export function EditableArrayField({
     if (onReset) onReset();
     if (isEditing) {
       setIsEditing(false);
+      setIsFocused(false);
     }
   };
 
@@ -117,7 +121,14 @@ export function EditableArrayField({
   // Render bullet points for display mode
   const renderBulletPoints = () => (
     <div
-      className="flex-1 border rounded-md p-3 bg-background min-h-[5rem] cursor-text hover:border-primary transition-colors relative group"
+      className={`flex-1 border rounded-md p-3 min-h-[5rem] cursor-text transition-all duration-150
+        ${!isEditing ? "hover:border-primary" : ""}
+        ${
+          isFocused || isEditing
+            ? "bg-primary/5 border-primary shadow-sm"
+            : "bg-background"
+        }
+        relative group`}
       onClick={() => {
         handleFocus();
       }}
@@ -152,7 +163,7 @@ export function EditableArrayField({
 
   // Render bulleted item editor
   const renderBulletEditor = () => (
-    <div className="flex-1 border rounded-md p-3 bg-background">
+    <div className="flex-1 border rounded-md p-3 bg-primary/5 border-primary shadow-sm">
       <div className="space-y-2">
         {editItems.map((item, index) => (
           <div key={index} className="flex items-center space-x-2">
@@ -163,6 +174,7 @@ export function EditableArrayField({
               className="flex-1"
               placeholder="Enter item text"
               autoFocus={index === editItems.length - 1 && item === ""}
+              onFocus={() => setIsFocused(true)}
             />
             <Button
               variant="ghost"

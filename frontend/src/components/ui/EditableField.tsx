@@ -30,6 +30,7 @@ export function EditableField({
   onReset,
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -38,11 +39,13 @@ export function EditableField({
 
   const handleFocus = () => {
     setIsEditing(true);
+    setIsFocused(true);
     if (onFocus) onFocus(fieldId);
   };
 
   const handleBlur = () => {
     setIsEditing(false);
+    setIsFocused(false);
     if (onBlur) onBlur();
   };
 
@@ -53,10 +56,12 @@ export function EditableField({
   const toggleEdit = () => {
     if (!isEditing) {
       setIsEditing(true);
+      setIsFocused(true);
       if (onFocus) onFocus(fieldId);
       setTimeout(() => inputRef.current?.focus(), 0);
     } else {
       setIsEditing(false);
+      setIsFocused(false);
       if (onBlur) onBlur();
     }
   };
@@ -68,9 +73,14 @@ export function EditableField({
       </label>
       <div className="flex space-x-2">
         <div
-          className={`flex-1 border rounded-md p-3 bg-background ${
-            !isEditing ? "hover:border-primary cursor-text" : ""
-          } transition-colors relative group`}
+          className={`flex-1 border rounded-md p-3 transition-all duration-150
+            ${!isEditing ? "hover:border-primary cursor-text" : ""}
+            ${
+              isFocused || isEditing
+                ? "bg-primary/5 border-primary shadow-sm"
+                : "bg-background"
+            }
+          `}
           onClick={() => {
             if (!isEditing) {
               toggleEdit();
@@ -100,8 +110,9 @@ export function EditableField({
               rows={rows}
               placeholder={placeholder}
               onChange={handleChange}
+              onFocus={handleFocus}
               onBlur={handleBlur}
-              className="w-full resize-none border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="w-full resize-none border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
               autoFocus
             />
           ) : (
