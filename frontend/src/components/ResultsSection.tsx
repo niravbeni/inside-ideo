@@ -591,7 +591,9 @@ export function ResultsSection({
       >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="structured">Structured Data</TabsTrigger>
-          <TabsTrigger value="images">Images ({images.length})</TabsTrigger>
+          <TabsTrigger value="images">
+            Sample Images ({images.length})
+          </TabsTrigger>
           <TabsTrigger value="pages">
             PDF Pages ({processedPages.length})
           </TabsTrigger>
@@ -828,12 +830,7 @@ export function ResultsSection({
                   <div className="text-xs text-gray-500 mt-2">
                     {image.image_description ? (
                       <ImageDescription text={image.image_description} />
-                    ) : (
-                      <>
-                        <strong>OCR Text:</strong>{" "}
-                        {image.ocr_text || "No text detected in image"}
-                      </>
-                    )}
+                    ) : null}
                   </div>
                 </CardFooter>
               </Card>
