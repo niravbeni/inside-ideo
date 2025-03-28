@@ -606,42 +606,17 @@ export function ResultsSection({
                 value={activeStructuredTab}
                 onValueChange={setActiveStructuredTab}
               >
-                <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="summary">PDF Summary</TabsTrigger>
-                  <TabsTrigger value="casestudy">Case Study</TabsTrigger>
                   <TabsTrigger value="insideideo">Inside IDEO</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="summary" className="space-y-4">
-                  {editableData.title && (
-                    <EditableField
-                      fieldId="title"
-                      label="Title"
-                      value={
-                        typeof editableData.title === "string"
-                          ? editableData.title
-                          : ""
-                      }
-                      isTextArea={true}
-                      rows={2}
-                      onChange={(value) =>
-                        handleStringFieldChange("title", value)
-                      }
-                      onFocus={handleFieldFocus}
-                      onBlur={handleFieldBlur}
-                      onReset={() => handleResetField("title")}
-                    />
-                  )}
-
                   {editableData.summary && (
                     <EditableField
                       fieldId="summary"
                       label="Summary"
-                      value={
-                        typeof editableData.summary === "string"
-                          ? editableData.summary
-                          : ""
-                      }
+                      value={editableData.summary}
                       isTextArea={true}
                       rows={4}
                       onChange={(value) =>
@@ -684,113 +659,123 @@ export function ResultsSection({
                         onReset={() => handleResetField("insights")}
                       />
                     )}
-
-                  {Object.entries(editableData).map(([key, value]) => {
-                    if (
-                      [
-                        "title",
-                        "summary",
-                        "key_points",
-                        "insights",
-                        // Add fields that should be shown in other tabs
-                        "case_study_title",
-                        "case_study_description",
-                        "case_study_challenge",
-                        "case_study_solution",
-                        "case_study_results",
-                        "inside_ideo_title",
-                        "inside_ideo_description",
-                        "inside_ideo_team",
-                        "inside_ideo_approach",
-                        "inside_ideo_outcome",
-                      ].includes(key)
-                    ) {
-                      return null;
-                    }
-
-                    if (Array.isArray(value) && value.length > 0) {
-                      const fieldId = `field_${key}`;
-                      return (
-                        <EditableArrayField
-                          key={key}
-                          fieldId={fieldId}
-                          label={key
-                            .split("_")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            )
-                            .join(" ")}
-                          value={value}
-                          rawValue={value.join("\n")}
-                          rows={4}
-                          placeholder={`Enter ${key
-                            .split("_")
-                            .join(" ")}, one per line`}
-                          onChange={(rawValue, processedArray) =>
-                            handleArrayFieldChange(
-                              key,
-                              rawValue,
-                              processedArray
-                            )
-                          }
-                          onFocus={handleFieldFocus}
-                          onBlur={handleFieldBlur}
-                          onReset={() => handleResetField(key)}
-                        />
-                      );
-                    } else if (typeof value === "string") {
-                      return (
-                        <EditableField
-                          key={key}
-                          fieldId={`field_${key}`}
-                          label={key
-                            .split("_")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            )
-                            .join(" ")}
-                          value={value}
-                          isTextArea={true}
-                          rows={3}
-                          onChange={(newValue) =>
-                            handleStringFieldChange(key, newValue)
-                          }
-                          onFocus={handleFieldFocus}
-                          onBlur={handleFieldBlur}
-                          onReset={() => handleResetField(key)}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-                </TabsContent>
-
-                <TabsContent value="casestudy" className="space-y-4">
-                  <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                    <h3 className="text-lg font-medium text-gray-500 mb-3">
-                      Case Study Format
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Future AI processing will provide case study content here,
-                      including title, description, challenge, solution, and
-                      results.
-                    </p>
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="insideideo" className="space-y-4">
-                  <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                    <h3 className="text-lg font-medium text-gray-500 mb-3">
-                      Inside IDEO Format
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Future AI processing will provide Inside IDEO content
-                      here, including title, description, team information,
-                      approach, and outcome.
-                    </p>
-                  </div>
+                  {editableData && (
+                    <>
+                      <EditableField
+                        fieldId="inside_ideo_client"
+                        label="Client"
+                        value={
+                          typeof editableData.inside_ideo_client === "string"
+                            ? editableData.inside_ideo_client
+                            : ""
+                        }
+                        isTextArea={false}
+                        onChange={(value) =>
+                          handleStringFieldChange("inside_ideo_client", value)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField("inside_ideo_client")}
+                      />
+
+                      <EditableField
+                        fieldId="inside_ideo_title"
+                        label="Title"
+                        value={
+                          typeof editableData.inside_ideo_title === "string"
+                            ? editableData.inside_ideo_title
+                            : ""
+                        }
+                        isTextArea={true}
+                        rows={2}
+                        onChange={(value) =>
+                          handleStringFieldChange("inside_ideo_title", value)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField("inside_ideo_title")}
+                      />
+
+                      <EditableField
+                        fieldId="inside_ideo_tagline"
+                        label="Tagline"
+                        value={
+                          typeof editableData.inside_ideo_tagline === "string"
+                            ? editableData.inside_ideo_tagline
+                            : ""
+                        }
+                        isTextArea={false}
+                        onChange={(value) =>
+                          handleStringFieldChange("inside_ideo_tagline", value)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField("inside_ideo_tagline")}
+                      />
+
+                      <EditableField
+                        fieldId="inside_ideo_challenge"
+                        label="The Challenge"
+                        value={
+                          typeof editableData.inside_ideo_challenge === "string"
+                            ? editableData.inside_ideo_challenge
+                            : ""
+                        }
+                        isTextArea={true}
+                        rows={4}
+                        onChange={(value) =>
+                          handleStringFieldChange(
+                            "inside_ideo_challenge",
+                            value
+                          )
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() =>
+                          handleResetField("inside_ideo_challenge")
+                        }
+                      />
+
+                      <EditableField
+                        fieldId="inside_ideo_design"
+                        label="The Design/Work"
+                        value={
+                          typeof editableData.inside_ideo_design === "string"
+                            ? editableData.inside_ideo_design
+                            : ""
+                        }
+                        isTextArea={true}
+                        rows={4}
+                        onChange={(value) =>
+                          handleStringFieldChange("inside_ideo_design", value)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField("inside_ideo_design")}
+                      />
+
+                      <EditableField
+                        fieldId="inside_ideo_impact"
+                        label="The Outcome/Impact"
+                        value={
+                          typeof editableData.inside_ideo_impact === "string"
+                            ? editableData.inside_ideo_impact
+                            : ""
+                        }
+                        isTextArea={true}
+                        rows={4}
+                        onChange={(value) =>
+                          handleStringFieldChange("inside_ideo_impact", value)
+                        }
+                        onFocus={handleFieldFocus}
+                        onBlur={handleFieldBlur}
+                        onReset={() => handleResetField("inside_ideo_impact")}
+                      />
+                    </>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

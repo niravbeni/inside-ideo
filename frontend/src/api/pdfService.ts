@@ -4,9 +4,16 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:8000";
 
 export interface StructuredData {
-  summary: string;
-  key_points: string[];
-  insights: string[];
+  summary?: string;
+  key_points?: string[];
+  insights?: string[];
+  // Case Study fields
+  case_study_client?: string;
+  case_study_title?: string;
+  case_study_tagline?: string;
+  case_study_challenge?: string;
+  case_study_design?: string;
+  case_study_impact?: string;
   // Index signature for additional string fields
   [key: string]: string | string[] | undefined;
 }

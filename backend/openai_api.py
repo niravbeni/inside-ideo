@@ -116,8 +116,16 @@ class OpenAIHandler:
             {
               "summary": "A concise but comprehensive summary of the document content",
               "key_points": ["Key point 1", "Key point 2", "..."],
-              "insights": ["Insight 1", "Insight 2", "..."]
-            }"""
+              "insights": ["Insight 1", "Insight 2", "..."],
+              "inside_ideo_client": "Name of the client organization",
+              "inside_ideo_title": "A compelling title for the project",
+              "inside_ideo_tagline": "A tagline providing additional context",
+              "inside_ideo_challenge": "Detailed description of the challenge faced",
+              "inside_ideo_design": "Comprehensive description of the approach and methods",
+              "inside_ideo_impact": "Concrete results and measurable impact"
+            }
+            
+            All fields must be based on explicit information from the content - do not invent or embellish details."""
             
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
