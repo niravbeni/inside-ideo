@@ -7,38 +7,41 @@ DEFAULT_OUTPUT_SCHEMA = {
     "properties": {
         "summary": {
             "type": "string",
-            "description": "A concise summary of the document's main content and purpose"
+            "description": "A concise summary of the client project, its objectives, and delivered outcomes"
         },
         "key_points": {
             "type": "array",
             "items": {
                 "type": "string"
             },
-            "description": "A list of the most important points or takeaways from the document"
+            "description": "Key deliverables, solutions, and outcomes achieved for the client"
         },
         "insights": {
             "type": "array",
             "items": {
                 "type": "string"
             },
-            "description": "Key insights, implications, or conclusions that can be drawn from the document"
+            "description": "Project insights including design decisions, client impact, and broader implications for future work"
         }
     },
     "required": ["summary", "key_points", "insights"]
 }
 
 DEFAULT_PROMPT = """
-You are an expert document analyzer. Your task is to analyze the provided document content and extract the most important information.
+You are analyzing a case study of an IDEO client project. Your task is to extract the key information about the project, its execution, and outcomes.
 
-The document content includes:
+The case study content includes:
 1. Extracted text from the PDF
 2. Text extracted from images using OCR
-3. Descriptions of images found in the document
+3. Descriptions of images from the case study
 
 Based on all this content, please provide:
-- A concise but comprehensive summary of the document
-- The key points or facts presented
-- Important insights that can be drawn from the content
+- A concise but comprehensive summary of the client project, including the challenge, approach, and key outcomes
+- The key deliverables and solutions implemented for the client, highlighting specific impacts and results
+- Project insights that include:
+  * Key design decisions and their impact on the project success
+  * Client-specific outcomes and value delivered
+  * Broader implications and learnings for future client work
 
-Consider the context of the document, including both textual content and information from images.
+Focus on the concrete project outcomes, client impact, and the specific solutions developed through the design process.
 """ 
