@@ -59,7 +59,7 @@ export function UploadSection({
     accept: {
       "application/pdf": [".pdf"],
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 50 * 1024 * 1024, // 10MB
     disabled: isLoading,
   });
 
