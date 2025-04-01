@@ -17,8 +17,8 @@ services:
     runtime: node
     buildCommand: |
       cd frontend && \
-      npm install -g typescript && \
-      npm ci && \
+      rm -rf node_modules package-lock.json && \
+      npm install && \
       npm run build
     startCommand: cd frontend && next start -p $PORT
     envVars:
