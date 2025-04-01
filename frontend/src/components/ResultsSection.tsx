@@ -12,6 +12,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
 } from "lucide-react";
 import {
   Card,
@@ -614,7 +615,24 @@ export function ResultsSection({
               >
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="summary">PDF Summary</TabsTrigger>
-                  <TabsTrigger value="insideideo">Inside IDEO</TabsTrigger>
+                  <TabsTrigger
+                    value="insideideo"
+                    className="flex items-center justify-center"
+                  >
+                    Inside IDEO
+                    <a
+                      href="https://inside.ideo.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink
+                        size={16}
+                        className="text-primary hover:text-primary/80"
+                      />
+                    </a>
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="summary" className="space-y-4">

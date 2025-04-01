@@ -28,7 +28,7 @@ export function UploadSection({
         // Show error for the first rejected file
         const firstError = rejectedFiles[0].errors[0];
         if (firstError.code === "file-too-large") {
-          setError("File is too large. Maximum size is 10MB.");
+          setError("File is too large. Maximum size is 50MB.");
         } else if (firstError.code === "file-invalid-type") {
           setError("Only PDF files are allowed.");
         } else {
@@ -59,7 +59,7 @@ export function UploadSection({
     accept: {
       "application/pdf": [".pdf"],
     },
-    maxSize: 50 * 1024 * 1024, // 10MB
+    maxSize: 50 * 1024 * 1024, // 50MB
     disabled: isLoading,
   });
 
@@ -102,7 +102,7 @@ export function UploadSection({
             Select PDF files
           </Button>
           <p className="text-xs text-muted-foreground">
-            Upload up to 5 PDF files (max 10MB each)
+            Upload up to 5 PDF files
           </p>
         </div>
       </div>
