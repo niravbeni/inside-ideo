@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// API Base URL - replace with your actual API URL when deployed
-const API_BASE_URL = "http://localhost:8000";
+// API Base URL - use environment variable or fallback to localhost for development
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface StructuredData {
   summary?: string;

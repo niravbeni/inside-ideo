@@ -3,6 +3,7 @@ import Head from "next/head";
 import { UploadSection } from "@/components/UploadSection";
 import { ResultsSection } from "@/components/ResultsSection";
 import { pdfService, ProcessPDFResponse } from "@/api/pdfService";
+import { DebugInfo } from "@/components/DebugInfo";
 // import IdeoLoaderCursor from "@/components/IdeoLoaderCursor";
 
 export default function Home() {
@@ -102,6 +103,7 @@ export default function Home() {
       </Head>
 
       {/* <IdeoLoaderCursor isLoading={isLoading} /> */}
+      <DebugInfo />
 
       <main className="min-h-screen bg-background">
         <div className="container py-10">
