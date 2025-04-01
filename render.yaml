@@ -20,7 +20,9 @@ services:
       rm -rf node_modules package-lock.json && \
       npm install && \
       npm run build
-    startCommand: cd frontend && next start -p $PORT
+    startCommand: cd frontend && npx next start -p $PORT
+    # Alternative start command if the above doesn't work:
+    # startCommand: cd frontend && node server.js
     envVars:
       - key: NODE_ENV
         value: production
