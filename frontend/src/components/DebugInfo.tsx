@@ -5,17 +5,21 @@ export function DebugInfo() {
     <div
       style={{
         position: "fixed",
-        bottom: "10px",
-        right: "10px",
-        backgroundColor: "rgba(0,0,0,0.7)",
-        color: "white",
-        padding: "8px",
-        borderRadius: "4px",
-        fontSize: "12px",
+        bottom: "5px",
+        right: "5px",
+        backgroundColor: "rgba(0,0,0,0.4)",
+        color: "rgba(255,255,255,0.7)",
+        padding: "4px 6px",
+        borderRadius: "3px",
+        fontSize: "10px",
         zIndex: 9999,
+        maxWidth: "200px",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
       }}
     >
-      API URL: {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}
+      api: {process.env.NEXT_PUBLIC_API_URL || "localhost:8000"}
     </div>
   );
 }

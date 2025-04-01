@@ -1,8 +1,10 @@
 import os
 import shutil
 import uuid
+import asyncio
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Body
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Body, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,8 +22,65 @@ from schemas import DEFAULT_OUTPUT_SCHEMA
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Session cleanup settings
+CLEANUP_THRESHOLD = 24 * 60 * 60  # 24 hours in seconds
+
+# Cleanup task and background task management
+cleanup_task = None
+
+async def cleanup_old_sessions():
+    """Clean up session directories older than CLEANUP_THRESHOLD seconds"""
+    while True:
+        try:
+            current_time = time.time()
+            logger.info(f"Running scheduled cleanup of sessions older than {CLEANUP_THRESHOLD/3600} hours")
+            
+            if OUTPUT_DIR.exists():
+                for session_dir in OUTPUT_DIR.iterdir():
+                    if session_dir.is_dir():
+                        # Get the creation time of the directory
+                        dir_create_time = session_dir.stat().st_ctime
+                        age = current_time - dir_create_time
+                        
+                        # If directory is older than threshold, remove it
+                        if age > CLEANUP_THRESHOLD:
+                            logger.info(f"Cleaning up old session: {session_dir}, age: {age/3600:.1f} hours")
+                            try:
+                                shutil.rmtree(session_dir, ignore_errors=True)
+                            except Exception as e:
+                                logger.error(f"Error removing directory {session_dir}: {str(e)}")
+            
+            # Sleep for 1 hour before checking again
+            await asyncio.sleep(60 * 60)
+        except Exception as e:
+            logger.error(f"Error during cleanup task: {str(e)}")
+            await asyncio.sleep(60 * 10)  # Wait 10 minutes on error
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create necessary directories and start background tasks
+    global cleanup_task
+    
+    # Create output directory if it doesn't exist
+    output_dir = Path("./output")
+    output_dir.mkdir(exist_ok=True)
+    
+    # Start background cleanup task
+    cleanup_task = asyncio.create_task(cleanup_old_sessions())
+    logger.info("Started background cleanup task")
+    
+    yield  # This is where the app runs
+    
+    # Shutdown: cancel background tasks
+    if cleanup_task:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            logger.info("Cleanup task cancelled")
+
 # Initialize FastAPI app
-app = FastAPI(title="PDF Content Extractor")
+app = FastAPI(title="PDF Content Extractor", lifespan=lifespan)
 
 # Configure CORS
 app.add_middleware(

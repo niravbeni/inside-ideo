@@ -544,8 +544,12 @@ export function ResultsSection({
         throw new Error("Invalid path format");
       }
 
+      // Use the same API_BASE_URL from pdfService
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
       const response = await fetch(
-        `http://localhost:8000/api/pages/${session_id}/${filename}`
+        `${API_BASE_URL}/api/pages/${session_id}/${filename}`
       );
 
       if (!response.ok) {
