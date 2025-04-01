@@ -26,7 +26,10 @@ app = FastAPI(title="PDF Content Extractor")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific frontend URL
+    allow_origins=[
+        "https://documentation-tool-frontend.onrender.com",
+        "http://localhost:3000",  # Keep local development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
