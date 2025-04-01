@@ -15,7 +15,11 @@ services:
   - type: web
     name: documentation-tool-frontend
     runtime: node
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: |
+      cd frontend && \
+      npm install -g typescript && \
+      npm ci && \
+      npm run build
     startCommand: cd frontend && next start -p $PORT
     envVars:
       - key: NODE_ENV
